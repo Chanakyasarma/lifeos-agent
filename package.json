@@ -1,0 +1,14 @@
+{
+  "name": "lifeos-agent",
+  "version": "1.0.0",
+  "description": "lifeos-agent",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
