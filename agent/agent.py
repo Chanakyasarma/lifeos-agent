@@ -39,7 +39,18 @@ creds_dict = json.loads(GOOGLE_CREDS_JSON)
 creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
 
 client = gspread.authorize(creds)
-sheet = client.open_by_key(GOOGLE_SHEET_ID).sheet1
+
+
+def _extract_sheet_id(value: str) -> str:
+    """Accept a raw sheet ID or a full Google Sheets URL."""
+    value = (value or "").strip()
+    match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", value)
+    if match:
+        return match.group(1)
+    return value
+
+
+sheet = client.open_by_key(_extract_sheet_id(GOOGLE_SHEET_ID)).sheet1
 
 
 # =========================
