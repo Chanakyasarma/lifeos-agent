@@ -514,7 +514,15 @@ async def midnight_reset(app):
 # MAIN
 # =========================
 def main():
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    app = (
+        ApplicationBuilder()
+        .token(TELEGRAM_TOKEN)
+        .read_timeout(30)
+        .write_timeout(30)
+        .connect_timeout(30)
+        .pool_timeout(30)
+        .build()
+    )
 
     app.add_handler(CommandHandler("start",    start))
     app.add_handler(CommandHandler("list",     list_tasks))
@@ -530,13 +538,26 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
 
     async def post_init(app):
+        # Auto-register commands so they appear in Telegram's / menu
+        from telegram import BotCommand
+        await app.bot.set_my_commands([
+            BotCommand("start",    "Start the bot"),
+            BotCommand("list",     "Show all tasks with priority & goals"),
+            BotCommand("done",     "Mark done — /done 0"),
+            BotCommand("skip",     "Skip a task — /skip 0"),
+            BotCommand("delete",   "Delete a task — /delete 0"),
+            BotCommand("clear",    "Clear all completed tasks"),
+            BotCommand("daily",    "Reset daily plan with one tap"),
+            BotCommand("progress", "Set goal progress — /progress 0 80"),
+            BotCommand("help",     "Show all commands"),
+        ])
         asyncio.create_task(checker(app))
         asyncio.create_task(midnight_reset(app))
 
     app.post_init = post_init
 
     print("🚀 LifeOS Agent running...")
-    app.run_polling()
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":
