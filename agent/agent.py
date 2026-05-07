@@ -3,6 +3,12 @@ import json
 import asyncio
 import re
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+IST = ZoneInfo("Asia/Kolkata")
+
+def now_ist() -> datetime:
+    return datetime.now(IST)
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -100,10 +106,10 @@ def smart_time(text: str) -> str:
     if "evening" in t:   return "18:00"
     if "night" in t:     return "21:00"
     if "later" in t:
-        return (datetime.now() + timedelta(hours=1)).strftime("%H:%M")
+        return (now_ist() + timedelta(hours=1)).strftime("%H:%M")
     m = re.search(r'in (\d+)\s*(min|minutes)', t)
     if m:
-        return (datetime.now() + timedelta(minutes=int(m.group(1)))).strftime("%H:%M")
+        return (now_ist() + timedelta(minutes=int(m.group(1)))).strftime("%H:%M")
     m = re.search(r'(\d{1,2}):(\d{2})', t)
     if m:
         return m.group(0)
@@ -456,7 +462,7 @@ async def checker(app):
     while True:
         try:
             tasks = load_tasks()
-            now = datetime.now().strftime("%H:%M")
+            now = now_ist().strftime("%H:%M")
 
             for i, t in enumerate(tasks):
                 if t.get("Status") == "Pending" and t.get("Time") == now:
@@ -474,19 +480,19 @@ async def checker(app):
 
 
 # =========================
-# DAILY AUTO-RESET (MIDNIGHT)
+# DAILY AUTO-RESET (MIDNIGHT IST)
 # =========================
 async def midnight_reset(app):
-    """Auto-reset daily tasks at midnight every day."""
+    """Auto-reset daily tasks at midnight IST every day."""
     while True:
-        now = datetime.now()
+        now = now_ist()
         next_midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=5, microsecond=0)
         wait_seconds = (next_midnight - now).total_seconds()
         await asyncio.sleep(wait_seconds)
 
         try:
             tasks = load_tasks()
-            today = datetime.now().strftime("%Y-%m-%d")
+            today = now_ist().strftime("%Y-%m-%d")
             count = 0
             for i, t in enumerate(tasks):
                 if t.get("Repeat") == "Daily":
