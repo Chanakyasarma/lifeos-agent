@@ -1,10 +1,11 @@
 [project]
-name = "repl-nix-workspace"
-version = "0.1.0"
-description = "Add your description here"
-requires-python = ">=3.12"
+name = "lifeos-agent"
+version = "1.0.0"
+requires-python = ">=3.11"
+ 
 dependencies = [
-    "google-auth>=2.49.2",
-    "gspread>=6.2.1",
-    "python-telegram-bot>=22.7",
+    "python-telegram-bot==20.7",
+    "gspread==6.1.2",
+    "google-auth==2.29.0",
 ]
+ 
