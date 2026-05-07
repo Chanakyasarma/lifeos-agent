@@ -379,27 +379,55 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    action, idx_str = query.data.split(":")
-    idx = int(idx_str)
+    data = query.data
     tasks = load_tasks()
 
-    if idx >= len(tasks):
+    # Handle name-based callbacks (from add flow)
+    if data.startswith("done_name:"):
+        name = data[len("done_name:"):]
+        for i, t in enumerate(tasks):
+            if t.get("Task") == name:
+                update_cell(data_row(i), COL_STATUS, "Done")
+                await query.edit_message_text(f"✅ <b>{name}</b> marked Done!", parse_mode="HTML")
+                return
         await query.edit_message_text("❌ Task not found.")
-        return
 
-    task_name = tasks[idx].get("Task", f"Task {idx}")
+    elif data.startswith("skip_name:"):
+        name = data[len("skip_name:"):]
+        for i, t in enumerate(tasks):
+            if t.get("Task") == name:
+                update_cell(data_row(i), COL_STATUS, "Skipped")
+                await query.edit_message_text(f"⏭ <b>{name}</b> skipped.", parse_mode="HTML")
+                return
+        await query.edit_message_text("❌ Task not found.")
 
-    if action == "done":
-        update_cell(data_row(idx), COL_STATUS, "Done")
-        await query.edit_message_text(f"✅ *{task_name}* marked Done!", parse_mode="Markdown")
+    elif data.startswith("del_name:"):
+        name = data[len("del_name:"):]
+        for i, t in enumerate(tasks):
+            if t.get("Task") == name:
+                sheet.delete_rows(data_row(i))
+                await query.edit_message_text(f"🗑 <b>{name}</b> deleted.", parse_mode="HTML")
+                return
+        await query.edit_message_text("❌ Task not found.")
 
-    elif action == "skip":
-        update_cell(data_row(idx), COL_STATUS, "Skipped")
-        await query.edit_message_text(f"⏭ *{task_name}* skipped.", parse_mode="Markdown")
+    # Handle index-based callbacks (from reminders)
+    else:
+        action, idx_str = data.split(":")
+        idx = int(idx_str)
+        if idx >= len(tasks):
+            await query.edit_message_text("❌ Task not found.")
+            return
+        task_name = tasks[idx].get("Task", f"Task {idx}")
 
-    elif action == "delete":
-        sheet.delete_rows(data_row(idx))
-        await query.edit_message_text(f"🗑 *{task_name}* deleted.", parse_mode="Markdown")
+        if action == "done":
+            update_cell(data_row(idx), COL_STATUS, "Done")
+            await query.edit_message_text(f"✅ <b>{task_name}</b> marked Done!", parse_mode="HTML")
+        elif action == "skip":
+            update_cell(data_row(idx), COL_STATUS, "Skipped")
+            await query.edit_message_text(f"⏭ <b>{task_name}</b> skipped.", parse_mode="HTML")
+        elif action == "delete":
+            sheet.delete_rows(data_row(idx))
+            await query.edit_message_text(f"🗑 <b>{task_name}</b> deleted.", parse_mode="HTML")
 
 
 # =========================
@@ -433,21 +461,23 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         }
         add_task(row)
 
-        # Find the row index of what we just added (last row)
-        all_tasks = load_tasks()
-        new_idx = len(all_tasks) - 1
-
         p_emoji = PRIORITY_EMOJI.get(row["Priority"], "🟡")
         r_emoji = REPEAT_EMOJI.get(row["Repeat"], "")
-        summary = f"{p_emoji} *{row['Task']}* | {row['Time']} {r_emoji}"
+        task_name = row["Task"].replace("<", "&lt;").replace(">", "&gt;")
+        summary = f"{p_emoji} <b>{task_name}</b> | {row['Time']} {r_emoji}"
         if row["Goal"]:
             summary += f"\n🎯 Goal: {row['Goal']}"
 
-        # Send with inline Done/Skip/Delete buttons
+        kb = InlineKeyboardMarkup([[
+            InlineKeyboardButton("✅ Done",   callback_data=f"done_name:{row['Task']}"),
+            InlineKeyboardButton("⏭ Skip",   callback_data=f"skip_name:{row['Task']}"),
+            InlineKeyboardButton("🗑 Delete", callback_data=f"del_name:{row['Task']}"),
+        ]])
+
         await update.message.reply_text(
             f"✅ Added: {summary}",
-            parse_mode="Markdown",
-            reply_markup=task_keyboard(new_idx)
+            parse_mode="HTML",
+            reply_markup=kb
         )
         added.append(p)
 
