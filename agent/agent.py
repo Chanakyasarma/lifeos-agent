@@ -3,9 +3,9 @@ import json
 import asyncio
 import re
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
+import pytz
 
-IST = ZoneInfo("Asia/Kolkata")
+IST = pytz.timezone("Asia/Kolkata")
 
 def now_ist() -> datetime:
     return datetime.now(IST)
