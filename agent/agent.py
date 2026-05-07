@@ -380,6 +380,28 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     data = query.data
+
+    # Show list button (from add flow)
+    if data == "show_list":
+        tasks = load_tasks()
+        if not tasks:
+            await query.edit_message_text("📭 No tasks yet.")
+            return
+        msg = "📋 <b>Your Tasks</b>\n\n"
+        high   = [(i,t) for i,t in enumerate(tasks) if t.get("Priority")=="High"]
+        medium = [(i,t) for i,t in enumerate(tasks) if t.get("Priority")=="Medium"]
+        low    = [(i,t) for i,t in enumerate(tasks) if t.get("Priority")=="Low"]
+        for section, label in [(high,"🔴 High"),(medium,"🟡 Medium"),(low,"🟢 Low")]:
+            if not section: continue
+            msg += f"<b>{label}</b>\n"
+            for i,t in section:
+                s = STATUS_EMOJI.get(t.get("Status","Pending"),"⏳")
+                r = REPEAT_EMOJI.get(t.get("Repeat","No"),"")
+                msg += f"{i}. {t['Task']} | {t['Time']} {r} {s}\n"
+            msg += "\n"
+        await query.edit_message_text(msg, parse_mode="HTML")
+        return
+
     tasks = load_tasks()
 
     # Handle name-based callbacks (from add flow)
@@ -468,16 +490,14 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if row["Goal"]:
             summary += f"\n🎯 Goal: {row['Goal']}"
 
-        kb = InlineKeyboardMarkup([[
-            InlineKeyboardButton("✅ Done",   callback_data=f"done_name:{row['Task']}"),
-            InlineKeyboardButton("⏭ Skip",   callback_data=f"skip_name:{row['Task']}"),
-            InlineKeyboardButton("🗑 Delete", callback_data=f"del_name:{row['Task']}"),
+        list_btn = InlineKeyboardMarkup([[
+            InlineKeyboardButton("📋 View List", callback_data="show_list"),
         ]])
 
         await update.message.reply_text(
             f"✅ Added: {summary}",
             parse_mode="HTML",
-            reply_markup=kb
+            reply_markup=list_btn
         )
         added.append(p)
 
