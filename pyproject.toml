@@ -1,11 +1,11 @@
 [project]
 name = "lifeos-agent"
 version = "1.0.0"
-requires-python = ">=3.11"
- 
+requires-python = ">=3.10"
+
 dependencies = [
     "python-telegram-bot==20.7",
     "gspread==6.1.2",
     "google-auth==2.29.0",
+    "pytz==2024.1",
 ]
- 
